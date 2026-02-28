@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trenby — Sistema de Pontuação Escolar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ── RESET & TOKENS ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0A0E1A;
+      --surface: #111827;
+      --card:    #1a2235;
+      --border:  #1e2d47;
+      --accent:  #6C63FF;
+      --accent2: #00F5C4;
+      --warn:    #F59E0B;
+      --danger:  #EF4444;
+      --success: #10B981;
+      --text:    #E2E8F0;
+      --muted:   #64748B;
+      --radius:  14px;
+    }
+    html, body { height: 100%; overflow: hidden; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── LAYOUT ─────────────────────────────────────────────── */
+    #app { display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0 16px; gap: 2px; overflow-y: auto; flex-shrink: 0; }
+    .main { flex: 1; overflow-y: auto; padding: 36px 44px; }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────── */
+    .logo { padding: 0 20px 28px; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent); }
+    .logo small { display: block; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0.5px; margin-top: 2px; }
+    .nav-section { padding: 14px 20px 5px; font-size: 10px; font-weight: 600; letter-spacing: 1.2px; color: var(--muted); text-transform: uppercase; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; width: 100%; background: none; border: none; border-left: 3px solid transparent; color: var(--muted); font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; text-align: left; transition: all 0.15s; }
+    .nav-item:hover { color: var(--text); background: rgba(108,99,255,0.07); }
+    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(108,99,255,0.12); }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+    .spacer { flex: 1; }
+
+    /* ── TIPOGRAFIA ──────────────────────────────────────────── */
+    .page-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+    .section-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+
+    /* ── CARDS ───────────────────────────────────────────────── */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+
+    /* ── METRICS ─────────────────────────────────────────────── */
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .metric { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .metric-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .metric-label { font-size: 12px; color: var(--muted); margin-top: 6px; font-weight: 500; }
+
+    /* ── TABLE ───────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); }
+    th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.8px; color: var(--muted); text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--surface); }
+    td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid rgba(30,45,71,0.5); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(108,99,255,0.04); }
+
+    /* ── BADGE ───────────────────────────────────────────────── */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(108,99,255,0.12); color: var(--accent); border: 1px solid rgba(108,99,255,0.25); }
+
+    /* ── PROGRESS BAR ────────────────────────────────────────── */
+    .pts-bar { display: flex; align-items: center; gap: 10px; }
+    .bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 80px; }
+    .bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+    .pts-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; min-width: 36px; }
+
+    /* ── BUTTONS ─────────────────────────────────────────────── */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; border: none; font-family: inherit; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #5a54e8; transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .btn-full { width: 100%; justify-content: center; margin-top: 4px; }
+
+    /* ── FORM ────────────────────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+    .field input, .field select, .field textarea { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: inherit; font-size: 14px; outline: none; transition: border-color 0.15s; width: 100%; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 80px; }
+    select option { background: var(--surface); }
+
+    /* ── ALERTS ──────────────────────────────────────────────── */
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; display: flex; align-items: flex-start; gap: 8px; }
+    .alert-warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--warn); }
+    .alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); }
+    .alert-success { background: rgba(0,245,196,0.08); border: 1px solid rgba(0,245,196,0.25); color: var(--accent2); }
+    .alert-info { background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.3); color: var(--accent); }
+
+    /* ── UPLOAD ──────────────────────────────────────────────── */
+    .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(108,99,255,0.05); }
+    .upload-icon { font-size: 44px; margin-bottom: 12px; }
+
+    /* ── SLIDER ──────────────────────────────────────────────── */
+    input[type=range] { -webkit-appearance: none; width: 100%; height: 6px; background: var(--border); border-radius: 3px; outline: none; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+
+    /* ── TABS ────────────────────────────────────────────────── */
+    .tabs { display: flex; gap: 2px; background: var(--surface); border-radius: 10px; padding: 4px; margin-bottom: 24px; border: 1px solid var(--border); }
+    .tab-btn { flex: 1; padding: 8px 12px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; background: none; border: none; color: var(--muted); font-family: inherit; transition: all 0.15s; }
+    .tab-btn.active { background: var(--card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+    /* ── LAYOUT UTILS ────────────────────────────────────────── */
+    .gap-8  { display: flex; flex-direction: column; gap: 8px; }
+    .gap-12 { display: flex; flex-direction: column; gap: 12px; }
+    .gap-16 { display: flex; flex-direction: column; gap: 16px; }
+    .gap-20 { display: flex; flex-direction: column; gap: 20px; }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .mb-8 { margin-bottom: 8px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mt-16 { margin-top: 16px; }
+    .text-muted { color: var(--muted); }
+    .text-sm { font-size: 13px; }
+    .text-center { text-align: center; }
+    .fw-700 { font-weight: 700; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+    .hidden { display: none !important; }
+
+    /* ── GAUGE ───────────────────────────────────────────────── */
+    .gauge-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .gauge-val { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; }
+    .gauge-sub { font-size: 12px; color: var(--muted); }
+
+    /* ── CHART SVG ───────────────────────────────────────────── */
+    .chart-svg { width: 100%; overflow: visible; display: block; }
+
+    /* ── RISK CHIP ───────────────────────────────────────────── */
+    .risk-chip { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+    /* ── NOTA PREVIEW ────────────────────────────────────────── */
+    .obs-card { padding: 12px 14px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); }
+
+    /* ── LOGIN ───────────────────────────────────────────────── */
+    #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 30% 40%, rgba(108,99,255,0.14) 0%, transparent 60%), radial-gradient(ellipse at 70% 70%, rgba(0,245,196,0.07) 0%, transparent 50%), var(--bg); }
+    .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 380px; max-width: 95vw; }
+    .login-logo { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+    .login-logo span { color: var(--accent); }
+
+    /* ── TEST BANNER ─────────────────────────────────────────── */
+    .test-banner { background: linear-gradient(90deg, rgba(108,99,255,0.15), rgba(0,245,196,0.1)); border: 1px solid rgba(108,99,255,0.35); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .test-banner-text { font-size: 13px; color: var(--accent2); font-weight: 500; }
+    .test-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-test { background: rgba(108,99,255,0.2); border: 1px solid rgba(108,99,255,0.4); color: var(--accent); font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .btn-test:hover { background: rgba(108,99,255,0.35); }
+
+    /* ── ANIMAÇÕES ───────────────────────────────────────────── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    .fade-up { animation: fadeUp 0.3s ease; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.8s linear infinite; display: inline-block; }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────── */
+    @media (max-width: 860px) {
+      .sidebar { width: 58px; min-width: 58px; }
+      .sidebar .nav-label, .sidebar .nav-section, .logo small, .logo-text { display: none; }
+      .nav-item { justify-content: center; padding: 12px; }
+      .logo { padding: 0 0 24px; text-align: center; }
+      .main { padding: 20px 16px; }
+      .grid2, .grid3 { grid-template-columns: 1fr; }
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card fade-up">
+    <div class="login-logo">Tren<span>by</span></div>
+    <p class="text-muted text-sm mb-16" style="margin-top:4px">Sistema de Pontuação Escolar</p>
+
+    <!-- Test access banner -->
+    <div style="background:rgba(0,245,196,0.07);border:1px solid rgba(0,245,196,0.2);border-radius:10px;padding:12px 14px;margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:600;color:var(--accent2);margin-bottom:8px;">⚡ Acesso Rápido para Testes</div>
+      <div class="gap-8">
+        <button class="btn-test" style="text-align:left;width:100%;background:rgba(108,99,255,0.15)" onclick="loginRapido('professor')">
+          👨‍🏫 Entrar como Professor <span style="opacity:0.6;font-size:11px;float:right">com dados de demo</span>
+        </button>
+        <button class="btn-test" style="text-align:left;width:100%;background:rgba(0,245,196,0.1);border-color:rgba(0,245,196,0.3);color:var(--accent2)" onclick="loginRapido('Ana Beatriz')">
+          🧑‍🎓 Entrar como Aluno (Ana Beatriz) <span style="opacity:0.6;font-size:11px;float:right">pontos: 9.68</span>
+        </button>
+        <button class="btn-test" style="text-align:left;width:100%;background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25);color:#f87171" onclick="loginRapido('Rafael Souza')">
+          🧑‍🎓 Entrar como Aluno (Rafael Souza) <span style="opacity:0.6;font-size:11px;float:right">pontos: 3.35 ⚠️</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab professor / aluno -->
+    <div class="tabs" id="login-tabs">
+      <button class="tab-btn active" onclick="setLoginPerfil('professor')">👨‍🏫 Professor</button>
+      <button class="tab-btn" onclick="setLoginPerfil('aluno')">🧑‍🎓 Aluno</button>
+    </div>
+
+    <div class="gap-16">
+      <div class="field">
+        <label id="login-user-label">Usuário</label>
+        <input type="text" id="login-user" placeholder="professor" />
+      </div>
+      <div class="field" id="login-senha-field">
+        <label>Senha</label>
+        <input type="password" id="login-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <div id="login-erro" class="alert alert-error hidden"></div>
+      <button class="btn btn-primary btn-full" onclick="doLogin()">Entrar →</button>
+      <p class="text-center text-sm text-muted" id="login-hint">Demo: usuário <strong>professor</strong> / senha <strong>trenby2025</strong></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════════════ -->
+<div id="app" class="hidden">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="logo">Tren<span>by</span><small>Sistema Escolar</small></div>
+
+    <div class="nav-section">Menu</div>
+    <button class="nav-item active" data-view="visao-geral" onclick="navegarPara('visao-geral',this)">
+      <span class="nav-icon">📊</span><span class="nav-label">Visão Geral</span>
+    </button>
+    <button class="nav-item" data-view="detalhe" onclick="navegarPara('detalhe',this)">
+      <span class="nav-icon">🧑‍🎓</span><span class="nav-label">Por Aluno</span>
+    </button>
+    <button class="nav-item" data-view="comparativa" onclick="navegarPara('comparativa',this)">
+      <span class="nav-icon">📈</span><span class="nav-label">Comparativo</span>
+    </button>
+    <button class="nav-item" data-view="historico" onclick="navegarPara('historico',this)">
+      <span class="nav-icon">📚</span><span class="nav-label">Histórico</span>
+    </button>
+    <button class="nav-item" data-view="upload" onclick="navegarPara('upload',this)" id="nav-upload">
+      <span class="nav-icon">📤</span><span class="nav-label">Upload CSV</span>
+    </button>
+
+    <div class="spacer"></div>
+    <div class="nav-section">Conta</div>
+    <button class="nav-item" onclick="doLogout()">
+      <span class="nav-icon">🚪</span><span class="nav-label">Sair</span>
+    </button>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main-content">
+    <!-- VIEW: VISÃO GERAL -->
+    <div id="view-visao-geral" class="fade-up gap-20"></div>
+    <!-- VIEW: DETALHE ALUNO -->
+    <div id="view-detalhe" class="fade-up gap-20 hidden"></div>
+    <!-- VIEW: COMPARATIVA -->
+    <div id="view-comparativa" class="fade-up gap-20 hidden"></div>
+    <!-- VIEW: HISTÓRICO -->
+    <div id="view-historico" class="fade-up gap-20 hidden"></div>
+    <!-- VIEW: UPLOAD -->
+    <div id="view-upload" class="fade-up gap-20 hidden"></div>
+    <!-- VIEW: ALUNO (perfil aluno) -->
+    <div id="view-aluno" class="fade-up gap-20 hidden"></div>
+  </main>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   DADOS DE DEMO — embutidos para funcionar sem backend
+═══════════════════════════════════════════════════════════ */
+const DEMO_ALUNOS = [
+  { Nome:"Ana Beatriz",    Série:"3º Ano", Disciplina:"Matemática", "Presença (%)":"96", "Atividades entregues":"98", "Nota de aprendizagem":"5.8", "Nível de engajamento":"9.5" },
+  { Nome:"João Pedro",     Série:"3º Ano", Disciplina:"Matemática", "Presença (%)":"82", "Atividades entregues":"80", "Nota de aprendizagem":"4.8", "Nível de engajamento":"7.8" },
+  { Nome:"Lucas Martins",  Série:"3º Ano", Disciplina:"Português",  "Presença (%)":"70", "Atividades entregues":"68", "Nota de aprendizagem":"4.1", "Nível de engajamento":"6.5" },
+  { Nome:"Camila Rocha",   Série:"2º Ano", Disciplina:"Português",  "Presença (%)":"52", "Atividades entregues":"48", "Nota de aprendizagem":"3.0", "Nível de engajamento":"5.2" },
+  { Nome:"Rafael Souza",   Série:"2º Ano", Disciplina:"Ciências",   "Presença (%)":"34", "Atividades entregues":"30", "Nota de aprendizagem":"2.0", "Nível de engajamento":"3.5" },
+  { Nome:"Mariana Silva",  Série:"1º Ano", Disciplina:"Ciências",   "Presença (%)":"100","Atividades entregues":"100","Nota de aprendizagem":"6.0", "Nível de engajamento":"10"  },
+  { Nome:"Gustavo Lima",   Série:"1º Ano", Disciplina:"História",   "Presença (%)":"84", "Atividades entregues":"86", "Nota de aprendizagem":"5.0", "Nível de engajamento":"8.2" },
+  { Nome:"Bianca Ferreira",Série:"2º Ano", Disciplina:"História",   "Presença (%)":"74", "Atividades entregues":"72", "Nota de aprendizagem":"4.5", "Nível de engajamento":"7.0" },
+  { Nome:"Rodrigo Alves",  Série:"1º Ano", Disciplina:"Matemática", "Presença (%)":"60", "Atividades entregues":"55", "Nota de aprendizagem":"3.5", "Nível de engajamento":"5.8" },
+  { Nome:"Isabela Costa",  Série:"3º Ano", Disciplina:"Português",  "Presença (%)":"90", "Atividades entregues":"92", "Nota de aprendizagem":"5.5", "Nível de engajamento":"9.0" },
+];
+
+// Histórico com 3 datas para mostrar tendência
+const DEMO_HISTORICO_EXTRA = [
+  // Ana Beatriz — em ascensão
+  { Nome:"Ana Beatriz", data:"2025-04-10", pontos_total:8.10 },
+  { Nome:"Ana Beatriz", data:"2025-05-12", pontos_total:9.00 },
+  // João Pedro — estável
+  { Nome:"João Pedro",  data:"2025-04-10", pontos_total:7.90 },
+  { Nome:"João Pedro",  data:"2025-05-12", pontos_total:8.03 },
+  // Rafael Souza — em queda
+  { Nome:"Rafael Souza",data:"2025-04-10", pontos_total:5.50 },
+  { Nome:"Rafael Souza",data:"2025-05-12", pontos_total:4.20 },
+  // Lucas — leve queda
+  { Nome:"Lucas Martins",data:"2025-04-10", pontos_total:7.20 },
+  { Nome:"Lucas Martins",data:"2025-05-12", pontos_total:6.83 },
+];
+
+/* ═══════════════════════════════════════════════════════════
+   ESTADO GLOBAL
+═══════════════════════════════════════════════════════════ */
+let STATE = {
+  usuario: null,          // { nome, perfil }
+  loginPerfil: 'professor',
+  dados: [],              // alunos calculados (turma ativa)
+  historico: [],          // todos os registros com data
+  anotacoes: {},          // { "Nome": [{data, observacao, acao}] }
+  turmas: [],             // [{id, nome, criadaEm}]
+  turmaAtiva: 'demo_turma_a',
+  viewAtual: 'visao-geral',
+  limiar: 6.0,
+  alunoSelecionado: '',
+  filtroComparativa: { turma:'todas', disciplina:'todas' },
+  filtroHistorico: { turma:'todas', aluno:'' },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   MOTOR DE CÁLCULO
+═══════════════════════════════════════════════════════════ */
+function calcularPontos(aluno) {
+  const presenca    = Math.min(parseFloat(aluno["Presença (%)"]) || 0, 100);
+  const atividades  = Math.min(parseFloat(aluno["Atividades entregues"]) || 0, 100);
+  const nota        = Math.min(parseFloat(aluno["Nota de aprendizagem"]) || 0, 6);
+  const engajamento = Math.min(parseFloat(aluno["Nível de engajamento"]) || 0, 10);
+
+  const pf = ((presenca/100 + atividades/100) / 2) * 5;
+  const pn = (nota / 6) * 3;
+  const pe = (engajamento / 10) * 2;
+  const total = Math.round((pf + pn + pe) * 100) / 100;
+
+  return { ...aluno,
+    pontos_freq: Math.round(pf*100)/100,
+    pontos_nota: Math.round(pn*100)/100,
+    pontos_eng:  Math.round(pe*100)/100,
+    pontos_total: total,
+    badge: getBadge(total)
+  };
+}
+
+function getBadge(pts) {
+  if (pts >= 9.0) return { label:"Ouro",     emoji:"🥇", cor:"#F59E0B" };
+  if (pts >= 7.5) return { label:"Prata",    emoji:"🥈", cor:"#94A3B8" };
+  if (pts >= 6.0) return { label:"Bronze",   emoji:"🥉", cor:"#CD7F32" };
+  return               { label:"Sem Badge", emoji:"⚠️", cor:"#EF4444" };
+}
+
+function analisarTendencia(registros) {
+  if (!registros || registros.length < 2)
+    return { nivel:"Indefinido", desc:"Dados insuficientes", cor:"var(--muted)", slope:0 };
+  const sorted = [...registros].sort((a,b) => new Date(a.data)-new Date(b.data));
+  const n = sorted.length, xs = sorted.map((_,i)=>i), ys = sorted.map(r=>r.pontos_total);
+  const mX = xs.reduce((a,b)=>a+b,0)/n, mY = ys.reduce((a,b)=>a+b,0)/n;
+  const num = xs.reduce((s,x,i)=>s+(x-mX)*(ys[i]-mY),0);
+  const den = xs.reduce((s,x)=>s+Math.pow(x-mX,2),0);
+  const slope = den ? num/den : 0;
+  const ultimo = ys[n-1];
+  if (slope > 0.3 && ultimo >= 6) return { nivel:"Em Ascensão 📈", desc:`Tendência +${slope.toFixed(2)} pts/análise`, cor:"#10B981", slope };
+  if (slope > 0)                  return { nivel:"Estável ↗",      desc:`Leve melhora de +${slope.toFixed(2)} pts`,   cor:"#3B82F6", slope };
+  if (slope<-0.3 && ultimo < 6)  return { nivel:"Alto Risco 🚨",  desc:`Queda de ${slope.toFixed(2)} pts e abaixo de 6.0`, cor:"#EF4444", slope };
+  if (slope < -0.3)               return { nivel:"Atenção ⚠️",     desc:`Queda de ${slope.toFixed(2)} pts/análise`,   cor:"#F59E0B", slope };
+  return                               { nivel:"Estável →",      desc:"Desempenho constante",                      cor:"#6B7280", slope };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STORAGE (localStorage, funciona com Go Live)
+═══════════════════════════════════════════════════════════ */
+const LS = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k,v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+function carregarStorage() {
+  STATE.turmas    = LS.get('trenby:turmas')    || [];
+  STATE.historico = LS.get('trenby:historico') || [];
+  STATE.anotacoes = LS.get('trenby:anotacoes') || {};
+
+  // Inject demo data if empty
+  if (STATE.historico.length === 0) {
+    const calculados = DEMO_ALUNOS.map(calcularPontos);
+    const turmaDemo  = { id:'demo_turma_a', nome:'Turma A — 3º Ano (Demo)', criadaEm: new Date().toISOString() };
+    STATE.turmas    = [turmaDemo];
+    STATE.turmaAtiva = 'demo_turma_a';
+
+    const hoje = '2025-06-21';
+    const registros = calculados.map(a => ({ ...a, turma:'demo_turma_a', data: hoje }));
+
+    // Extra histórico para tendências
+    DEMO_HISTORICO_EXTRA.forEach(h => {
+      const base = calculados.find(a=>a.Nome===h.Nome);
+      if (base) registros.push({ ...base, pontos_total: h.pontos_total, data: h.data, turma:'demo_turma_a' });
+    });
+
+    STATE.historico = registros;
+    LS.set('trenby:turmas', STATE.turmas);
+    LS.set('trenby:historico', STATE.historico);
+    LS.set('trenby:anotacoes', STATE.anotacoes);
+  }
+
+  if (STATE.turmas.length > 0 && !STATE.turmaAtiva) {
+    STATE.turmaAtiva = STATE.turmas[0].id;
+  }
+  recalcDados();
+}
+
+function recalcDados() {
+  // Pegar registro mais recente por aluno na turma ativa
+  const map = {};
+  STATE.historico
+    .filter(r => r.turma === STATE.turmaAtiva)
+    .forEach(r => {
+      if (!map[r.Nome] || new Date(r.data) >= new Date(map[r.Nome].data)) map[r.Nome] = r;
+    });
+  STATE.dados = Object.values(map).sort((a,b)=>b.pontos_total-a.pontos_total);
+  if (STATE.dados.length > 0 && !STATE.alunoSelecionado) {
+    STATE.alunoSelecionado = STATE.dados[0].Nome;
+  }
+}
+
+function salvarStorage() {
+  LS.set('trenby:turmas', STATE.turmas);
+  LS.set('trenby:historico', STATE.historico);
+  LS.set('trenby:anotacoes', STATE.anotacoes);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTENTICAÇÃO
+═══════════════════════════════════════════════════════════ */
+function setLoginPerfil(p) {
+  STATE.loginPerfil = p;
+  document.querySelectorAll('#login-tabs .tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', (i===0&&p==='professor')||(i===1&&p==='aluno'));
+  });
+  document.getElementById('login-user-label').textContent = p==='professor' ? 'Usuário' : 'Seu nome completo';
+  document.getElementById('login-user').placeholder = p==='professor' ? 'professor' : 'Ex: Ana Beatriz';
+  document.getElementById('login-senha-field').classList.toggle('hidden', p==='aluno');
+  document.getElementById('login-hint').classList.toggle('hidden', p==='aluno');
+}
+
+function loginRapido(quem) {
+  if (quem === 'professor') {
+    STATE.usuario = { nome: 'Professor', perfil: 'professor' };
+  } else {
+    STATE.usuario = { nome: quem, perfil: 'aluno' };
+  }
+  iniciarApp();
+}
+
+function doLogin() {
+  const user  = document.getElementById('login-user').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  const err   = document.getElementById('login-erro');
+  err.classList.add('hidden');
+
+  if (STATE.loginPerfil === 'professor') {
+    if (user === 'professor' && senha === 'trenby2025') {
+      STATE.usuario = { nome:'Professor', perfil:'professor' };
+      iniciarApp();
+    } else {
+      err.textContent = '⚠️ Usuário ou senha incorretos.';
+      err.classList.remove('hidden');
+    }
+  } else {
+    if (!user) { err.textContent='⚠️ Digite seu nome.'; err.classList.remove('hidden'); return; }
+    STATE.usuario = { nome: user, perfil: 'aluno' };
+    iniciarApp();
+  }
+}
+
+function doLogout() {
+  STATE.usuario = null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-senha').value = '';
+}
+
+function iniciarApp() {
+  carregarStorage();
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+
+  if (STATE.usuario.perfil === 'aluno') {
+    // Esconder sidebar de professor, mostrar só visão aluno
+    document.getElementById('sidebar').classList.add('hidden');
+    document.querySelectorAll('.main .fade-up').forEach(el=>el.classList.add('hidden'));
+    document.getElementById('view-aluno').classList.remove('hidden');
+    renderizarVisaoAluno();
+  } else {
+    document.getElementById('sidebar').classList.remove('hidden');
+    navegarPara('visao-geral', document.querySelector('.nav-item[data-view="visao-geral"]'));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NAVEGAÇÃO
+═══════════════════════════════════════════════════════════ */
+function navegarPara(view, btn) {
+  STATE.viewAtual = view;
+  // ativa nav
+  document.querySelectorAll('.nav-item[data-view]').forEach(n=>n.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // mostra view
+  ['visao-geral','detalhe','comparativa','historico','upload'].forEach(v=>{
+    const el = document.getElementById('view-'+v);
+    if (el) el.classList.toggle('hidden', v!==view);
+  });
+  // renderiza
+  const renders = {
+    'visao-geral': renderizarVisaoGeral,
+    'detalhe':     renderizarDetalhe,
+    'comparativa': renderizarComparativa,
+    'historico':   renderizarHistorico,
+    'upload':      renderizarUpload,
+  };
+  if (renders[view]) renders[view]();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS HTML
+═══════════════════════════════════════════════════════════ */
+function badgeHTML(b) {
+  return `<span class="badge" style="background:${b.cor}22;color:${b.cor};border:1px solid ${b.cor}44">${b.emoji} ${b.label}</span>`;
+}
+function barraHTML(pts, max=10) {
+  const pct = Math.min((pts/max)*100,100);
+  const cor = pts>=7.5?'#10B981':pts>=6?'#F59E0B':'#EF4444';
+  return `<div class="pts-bar"><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${cor}"></div></div><span class="pts-val">${pts}</span></div>`;
+}
+function chipHTML(txt) { return `<span class="chip">${txt}</span>`; }
+function alertHTML(type, msg) { return `<div class="alert alert-${type}">${msg}</div>`; }
+function gaugeHTML(val, badge, id='gauge-main') {
+  const r=54, circ=2*Math.PI*r, pct=Math.min(val/10,1), cor=badge.cor;
+  return `
+  <div class="gauge-wrap">
+    <div style="position:relative;width:140px;height:140px">
+      <svg width="140" height="140" style="transform:rotate(-90deg)">
+        <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
+        <circle cx="70" cy="70" r="${r}" fill="none" stroke="${cor}" stroke-width="10"
+          stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${(circ*(1-pct)).toFixed(1)}"
+          stroke-linecap="round" style="transition:stroke-dashoffset 0.8s ease"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <span class="gauge-val" style="color:${cor}">${val}</span>
+        <span class="gauge-sub">/ 10</span>
+      </div>
+    </div>
+    ${badgeHTML(badge)}
+  </div>`;
+}
+
+function lineChartHTML(registros, cor='#6C63FF') {
+  if (!registros || registros.length < 2) return alertHTML('info','📌 Faça mais uploads desta turma para ver a evolução histórica.');
+  const sorted = [...registros].sort((a,b)=>new Date(a.data)-new Date(b.data));
+  const W=600,H=180,padX=36,padY=18;
+  const xs = sorted.map((_,i)=>padX+(i/(sorted.length-1))*(W-padX*2));
+  const ys = sorted.map(d=>H-padY-((d.pontos_total/10))*(H-padY*2));
+  const path = xs.map((x,i)=>`${i===0?'M':'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+  const area = `${path} L${xs[xs.length-1]},${H-padY} L${xs[0]},${H-padY} Z`;
+  const grades = [0,2.5,5,7.5,10].map(v=>{
+    const y=H-padY-((v/10))*(H-padY*2);
+    return `<line x1="${padX}" y1="${y.toFixed(1)}" x2="${W-padX}" y2="${y.toFixed(1)}" stroke="rgba(30,45,71,0.8)" stroke-width="1"/>
+            <text x="${padX-4}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)">${v}</text>`;
+  }).join('');
+  const pts = xs.map((x,i)=>{
+    const d=sorted[i], dt=d.data?new Date(d.data).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):i+1;
+    return `<circle cx="${x.toFixed(1)}" cy="${ys[i].toFixed(1)}" r="5" fill="${cor}" stroke="var(--bg)" stroke-width="2"/>
+            <text x="${x.toFixed(1)}" y="${H-3}" text-anchor="middle" font-size="9" fill="var(--muted)">${dt}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart-svg">${grades}
+    <path d="${area}" fill="${cor}" opacity="0.12"/>
+    <path d="${path}" fill="none" stroke="${cor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${pts}</svg>`;
+}
+
+function barChartHTML(data, cor='#6C63FF') {
+  if (!data || data.length===0) return '<p class="text-muted text-sm">Sem dados suficientes.</p>';
+  const W=600,H=180,padX=40,padY=24;
+  const gap=(W-padX*2)/data.length;
+  const barW=Math.min(54,gap-10);
+  const grades=[0,5,10].map(v=>{
+    const y=H-padY-((v/10))*(H-padY*2);
+    return `<line x1="${padX}" y1="${y}" x2="${W-padX}" y2="${y}" stroke="rgba(30,45,71,0.8)" stroke-width="1"/>
+            <text x="${padX-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--muted)">${v}</text>`;
+  }).join('');
+  const bars = data.map((d,i)=>{
+    const bh=Math.max((d.media/10)*(H-padY*2),2);
+    const x=padX+i*gap+gap/2-barW/2;
+    const y=H-padY-bh;
+    const c=d.media>=7.5?'#10B981':d.media>=6?'#F59E0B':'#EF4444';
+    const nm=d.nome.length>8?d.nome.slice(0,7)+'…':d.nome;
+    return `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" fill="${c}" rx="4" opacity="0.85"/>
+            <text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="10" fill="var(--text)" font-weight="700">${d.media}</text>
+            <text x="${x+barW/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="var(--muted)">${nm}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart-svg">${grades}${bars}</svg>`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VIEWS
+═══════════════════════════════════════════════════════════ */
+
+// ── VISÃO GERAL ──────────────────────────────────────────
+function renderizarVisaoGeral() {
+  const d = STATE.dados;
+  if (d.length===0) { document.getElementById('view-visao-geral').innerHTML = alertHTML('info','Nenhum dado carregado. Faça upload de uma planilha.'); return; }
+  const media = (d.reduce((s,a)=>s+a.pontos_total,0)/d.length).toFixed(2);
+  const abaixo = d.filter(a=>a.pontos_total<STATE.limiar);
+  const turmaNome = STATE.turmas.find(t=>t.id===STATE.turmaAtiva)?.nome || STATE.turmaAtiva;
+
+  const linhasRanking = d.map((a,i)=>`
+    <tr>
+      <td style="color:var(--muted);font-weight:700">#${i+1}</td>
+      <td style="font-weight:600">${a.Nome}</td>
+      <td>${a.Série||'-'}</td>
+      <td>${a.Disciplina||'-'}</td>
+      <td style="min-width:160px">${barraHTML(a.pontos_total)}</td>
+      <td>${badgeHTML(a.badge)}</td>
+    </tr>`).join('');
+
+  const linhasAlerta = abaixo.map(a=>`
+    <tr>
+      <td style="font-weight:600">${a.Nome}</td>
+      <td style="min-width:140px">${barraHTML(a.pontos_total)}</td>
+      <td>${badgeHTML(a.badge)}</td>
+    </tr>`).join('');
+
+  document.getElementById('view-visao-geral').innerHTML = `
+    <div>
+      <div class="page-title">Visão Geral</div>
+      <p class="page-sub">${turmaNome}</p>
+    </div>
+
+    <!-- Banner de teste -->
+    <div class="test-banner">
+      <span class="test-banner-text">⚡ Modo Demo — dados gerados automaticamente para testes</span>
+      <div class="test-btns">
+        <button class="btn-test" onclick="resetarDemo()">🔄 Resetar Demo</button>
+        <button class="btn-test" onclick="navegarPara('upload',document.querySelector('.nav-item[data-view=upload]'))">📤 Importar CSV Real</button>
+      </div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-value">${d.length}</div><div class="metric-label">Total de Alunos</div></div>
+      <div class="metric"><div class="metric-value">${media}</div><div class="metric-label">Média da Turma</div></div>
+      <div class="metric"><div class="metric-value">${d[0]?.pontos_total||0}</div><div class="metric-label">Maior Pontuação</div></div>
+      <div class="metric"><div class="metric-value">${abaixo.length}</div><div class="metric-label">Abaixo de ${STATE.limiar}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🏆 Ranking da Turma</div>
+      <div class="table-wrap">
+        <table><thead><tr><th>#</th><th>Nome</th><th>Série</th><th>Disciplina</th><th>Pontuação</th><th>Badge</th></tr></thead>
+        <tbody>${linhasRanking}</tbody></table>
+      </div>
+    </div>
+
+    <div class="card gap-12">
+      <div class="section-title">🚨 Alertas de Baixa Pontuação</div>
+      <div class="row">
+        <span class="text-sm text-muted" style="white-space:nowrap">Limiar mínimo:</span>
+        <input type="range" min="0" max="10" step="0.5" value="${STATE.limiar}"
+          oninput="STATE.limiar=+this.value;document.getElementById('limiar-val').textContent=this.value;renderizarVisaoGeral()" style="flex:1"/>
+        <span id="limiar-val" style="font-family:Syne;font-weight:700;min-width:32px">${STATE.limiar}</span>
+      </div>
+      ${abaixo.length===0
+        ? alertHTML('success','🎉 Todos os alunos estão acima de '+STATE.limiar+' pontos!')
+        : alertHTML('warn','⚠️ '+abaixo.length+' aluno(s) abaixo do limiar de '+STATE.limiar+' pontos') +
+          `<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Pontuação</th><th>Badge</th></tr></thead><tbody>${linhasAlerta}</tbody></table></div>`
+      }
+    </div>`;
+}
+
+// ── DETALHE DO ALUNO ─────────────────────────────────────
+function renderizarDetalhe() {
+  const alunos = [...new Set(STATE.dados.map(a=>a.Nome))].sort();
+  if (!STATE.alunoSelecionado && alunos.length>0) STATE.alunoSelecionado = alunos[0];
+  const selecionado = STATE.alunoSelecionado;
+  const dado = STATE.dados.find(a=>a.Nome===selecionado);
+  const anotacoes = STATE.anotacoes[selecionado] || [];
+
+  // registros históricos deste aluno na turma ativa
+  const regsAluno = STATE.historico
+    .filter(r=>r.turma===STATE.turmaAtiva && r.Nome===selecionado)
+    .sort((a,b)=>new Date(a.data)-new Date(b.data));
+  const tend = analisarTendencia(regsAluno);
+
+  const opcoesSelect = alunos.map(n=>`<option value="${n}" ${n===selecionado?'selected':''}>${n}</option>`).join('');
+
+  const obsHTML = anotacoes.length===0
+    ? '<p class="text-sm text-muted">Nenhuma observação registrada.</p>'
+    : anotacoes.map(o=>`
+      <div class="obs-card gap-8">
+        <div class="row-between"><span style="font-weight:600;font-size:13px">${o.data}</span></div>
+        <p style="font-size:14px">${o.observacao}</p>
+        ${o.acao_sugerida ? `<p style="font-size:13px;color:var(--accent2)">💡 ${o.acao_sugerida}</p>` : ''}
+      </div>`).join('');
+
+  if (!dado) {
+    document.getElementById('view-detalhe').innerHTML = alertHTML('info','Selecione um aluno.');
+    return;
+  }
+
+  document.getElementById('view-detalhe').innerHTML = `
+    <div>
+      <div class="page-title">Detalhe do Aluno</div>
+      <p class="page-sub">Análise individual e histórico</p>
+    </div>
+
+    <div class="field" style="max-width:360px">
+      <label>Selecione o aluno</label>
+      <select onchange="STATE.alunoSelecionado=this.value;renderizarDetalhe()">${opcoesSelect}</select>
+    </div>
+
+    <div class="grid2">
+      <div class="card" style="display:flex;flex-direction:column;align-items:center;gap:16px">
+        ${gaugeHTML(dado.pontos_total, dado.badge)}
+        <div style="text-align:center">
+          <div style="font-family:Syne;font-weight:700;font-size:18px">${selecionado}</div>
+          <div class="text-sm text-muted">${dado.Série||'-'} · ${dado.Disciplina||'-'}</div>
+        </div>
+      </div>
+      <div class="card gap-12">
+        <div class="section-title" style="margin-bottom:0">Composição dos Pontos</div>
+        ${[
+          { label:'Frequência + Atividades', pts:dado.pontos_freq, max:5, emoji:'📅' },
+          { label:'Nota de Aprendizagem',    pts:dado.pontos_nota, max:3, emoji:'📚' },
+          { label:'Engajamento',             pts:dado.pontos_eng,  max:2, emoji:'⚡' },
+        ].map(c=>`
+          <div>
+            <div class="row-between mb-8"><span style="font-size:13px;font-weight:500">${c.emoji} ${c.label}</span>
+              <span style="font-family:Syne;font-weight:700;font-size:13px">${c.pts} / ${c.max}</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(c.pts/c.max)*100}%;background:var(--accent)"></div></div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card gap-12">
+      <div class="row-between mb-8">
+        <div class="section-title" style="margin-bottom:0">📈 Tendência e Risco</div>
+        <span class="risk-chip" style="background:${tend.cor}22;color:${tend.cor};border:1px solid ${tend.cor}44">${tend.nivel}</span>
+      </div>
+      <p class="text-sm text-muted">${tend.desc}</p>
+      ${lineChartHTML(regsAluno, tend.cor)}
+    </div>
+
+    <div class="card gap-12">
+      <div class="section-title">📝 Observações e Ações</div>
+      ${obsHTML}
+      <hr class="divider" style="margin:8px 0"/>
+      <div class="section-title" style="margin-bottom:0">✍️ Nova Observação</div>
+      <div class="field"><label>Observação</label>
+        <textarea id="obs-input" placeholder="Descreva o comportamento ou desempenho…"></textarea></div>
+      <div class="field"><label>Ação Sugerida (opcional)</label>
+        <input type="text" id="acao-input" placeholder="Ex: Agendar reforço, ligar para os pais…"/></div>
+      <div id="obs-ok" class="hidden"></div>
+      <button class="btn btn-primary" onclick="salvarObs()">💾 Salvar Observação</button>
+    </div>`;
+}
+
+function salvarObs() {
+  const obs  = document.getElementById('obs-input')?.value.trim();
+  const acao = document.getElementById('acao-input')?.value.trim();
+  const nome = STATE.alunoSelecionado;
+  if (!obs) { alert('Digite uma observação.'); return; }
+  if (!STATE.anotacoes[nome]) STATE.anotacoes[nome] = [];
+  STATE.anotacoes[nome].push({ data: new Date().toLocaleString('pt-BR'), observacao: obs, acao_sugerida: acao });
+  salvarStorage();
+  renderizarDetalhe();
+}
+
+// ── ANÁLISE COMPARATIVA ──────────────────────────────────
+function renderizarComparativa() {
+  // todos os alunos mais recentes por turma
+  const map = {};
+  STATE.historico.forEach(r=>{
+    const k = r.turma+'::'+r.Nome;
+    if (!map[k] || new Date(r.data)>new Date(map[k].data)) map[k]=r;
+  });
+  let todos = Object.values(map);
+
+  const disciplinas = [...new Set(todos.map(r=>r.Disciplina).filter(Boolean))].sort();
+  const series      = [...new Set(todos.map(r=>r.Série).filter(Boolean))].sort();
+  const turmasOpts  = STATE.turmas;
+
+  const f = STATE.filtroComparativa;
+  if (f.turma !== 'todas') todos = todos.filter(r=>r.turma===f.turma);
+  if (f.disciplina !== 'todas') todos = todos.filter(r=>r.Disciplina===f.disciplina);
+
+  // Médias
+  const porSerie = {};
+  const porDisc  = {};
+  todos.forEach(r=>{
+    if (!porSerie[r.Série||'?']) porSerie[r.Série||'?']=[];
+    porSerie[r.Série||'?'].push(r.pontos_total);
+    if (!porDisc[r.Disciplina||'?']) porDisc[r.Disciplina||'?']=[];
+    porDisc[r.Disciplina||'?'].push(r.pontos_total);
+  });
+  const mediaSerie = Object.entries(porSerie).map(([nome,pts])=>({nome,media:+(pts.reduce((a,b)=>a+b,0)/pts.length).toFixed(2)})).sort((a,b)=>b.media-a.media);
+  const mediaDisc  = Object.entries(porDisc).map(([nome,pts])=>({nome,media:+(pts.reduce((a,b)=>a+b,0)/pts.length).toFixed(2)})).sort((a,b)=>b.media-a.media);
+
+  const mediaGeral = todos.length ? (todos.reduce((s,r)=>s+r.pontos_total,0)/todos.length).toFixed(2) : 0;
+  const turmaSel = f.turma; const discSel = f.disciplina;
+
+  const linhas = [...todos].sort((a,b)=>b.pontos_total-a.pontos_total).map(r=>`
+    <tr>
+      <td style="font-weight:600">${r.Nome}</td>
+      <td>${chipHTML(r.turma)}</td><td>${r.Série||'-'}</td><td>${r.Disciplina||'-'}</td>
+      <td style="min-width:140px">${barraHTML(r.pontos_total)}</td>
+      <td>${badgeHTML(r.badge)}</td>
+    </tr>`).join('');
+
+  document.getElementById('view-comparativa').innerHTML = `
+    <div>
+      <div class="page-title">Análise Comparativa</div>
+      <p class="page-sub">Compare desempenho entre turmas, séries e disciplinas</p>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div class="field"><label>Turma</label>
+          <select onchange="STATE.filtroComparativa.turma=this.value;renderizarComparativa()">
+            <option value="todas" ${turmaSel==='todas'?'selected':''}>Todas as turmas</option>
+            ${STATE.turmas.map(t=>`<option value="${t.id}" ${turmaSel===t.id?'selected':''}>${t.nome}</option>`).join('')}
+          </select></div>
+        <div class="field"><label>Disciplina</label>
+          <select onchange="STATE.filtroComparativa.disciplina=this.value;renderizarComparativa()">
+            <option value="todas" ${discSel==='todas'?'selected':''}>Todas</option>
+            ${disciplinas.map(d=>`<option value="${d}" ${discSel===d?'selected':''}>${d}</option>`).join('')}
+          </select></div>
+      </div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-value">${todos.length}</div><div class="metric-label">Alunos no Filtro</div></div>
+      <div class="metric"><div class="metric-value">${mediaGeral}</div><div class="metric-label">Média Geral</div></div>
+      <div class="metric"><div class="metric-value">${todos.filter(r=>r.pontos_total>=7.5).length}</div><div class="metric-label">Prata / Ouro</div></div>
+      <div class="metric"><div class="metric-value">${todos.filter(r=>r.pontos_total<6).length}</div><div class="metric-label">Abaixo de 6.0</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="section-title">📊 Média por Série</div>${barChartHTML(mediaSerie)}</div>
+      <div class="card"><div class="section-title">📊 Média por Disciplina</div>${barChartHTML(mediaDisc,'#00F5C4')}</div>
+    </div>
+    <div class="card">
+      <div class="section-title">📋 Alunos (${todos.length})</div>
+      ${todos.length===0 ? alertHTML('info','Sem dados para os filtros selecionados.') : `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Nome</th><th>Turma</th><th>Série</th><th>Disciplina</th><th>Pontuação</th><th>Badge</th></tr></thead>
+        <tbody>${linhas}</tbody></table></div>`}
+    </div>`;
+}
+
+// ── HISTÓRICO ─────────────────────────────────────────────
+function renderizarHistorico() {
+  const f = STATE.filtroHistorico;
+  let registros = [...STATE.historico];
+  if (f.turma !== 'todas') registros = registros.filter(r=>r.turma===f.turma);
+  if (f.aluno) registros = registros.filter(r=>r.Nome.toLowerCase().includes(f.aluno.toLowerCase()));
+  registros.sort((a,b)=>new Date(b.data)-new Date(a.data));
+
+  const linhas = registros.slice(0,100).map(r=>`
+    <tr>
+      <td class="text-muted">${r.data||'-'}</td>
+      <td>${chipHTML(r.turma)}</td>
+      <td style="font-weight:600">${r.Nome}</td>
+      <td>${r.Série||'-'}</td>
+      <td style="min-width:140px">${barraHTML(r.pontos_total)}</td>
+      <td>${badgeHTML(r.badge)}</td>
+    </tr>`).join('');
+
+  const turmasCards = STATE.turmas.map(t=>`
+    <div class="obs-card row-between">
+      <div>
+        <div style="font-weight:600">${t.nome}</div>
+        <div class="text-sm text-muted">Criada em ${new Date(t.criadaEm).toLocaleDateString('pt-BR')}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="confirmarExclusaoTurma('${t.id}','${t.nome}')">🗑️ Excluir</button>
+    </div>`).join('');
+
+  document.getElementById('view-historico').innerHTML = `
+    <div>
+      <div class="page-title">Histórico Geral</div>
+      <p class="page-sub">Todos os registros salvos no sistema</p>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div class="field"><label>Filtrar Turma</label>
+          <select onchange="STATE.filtroHistorico.turma=this.value;renderizarHistorico()">
+            <option value="todas" ${f.turma==='todas'?'selected':''}>Todas</option>
+            ${STATE.turmas.map(t=>`<option value="${t.id}" ${f.turma===t.id?'selected':''}>${t.nome}</option>`).join('')}
+          </select></div>
+        <div class="field"><label>Buscar Aluno</label>
+          <input type="text" value="${f.aluno}" placeholder="Digite o nome…"
+            oninput="STATE.filtroHistorico.aluno=this.value;renderizarHistorico()"/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">📄 Registros (${registros.length})</div>
+      ${registros.length===0 ? alertHTML('info','Nenhum registro encontrado.') : `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Data</th><th>Turma</th><th>Nome</th><th>Série</th><th>Pontuação</th><th>Badge</th></tr></thead>
+        <tbody>${linhas}</tbody></table></div>
+      ${registros.length>100?`<p class="text-sm text-muted" style="padding:12px">Mostrando 100 de ${registros.length}</p>`:''}`}
+    </div>
+    <div class="card gap-12">
+      <div class="section-title">🗑️ Gerenciar Turmas</div>
+      ${STATE.turmas.length===0 ? '<p class="text-sm text-muted">Nenhuma turma cadastrada.</p>' : turmasCards}
+    </div>`;
+}
+
+function confirmarExclusaoTurma(id, nome) {
+  if (!confirm(`Excluir a turma "${nome}" e todos os seus registros? Esta ação é irreversível.`)) return;
+  STATE.turmas = STATE.turmas.filter(t=>t.id!==id);
+  STATE.historico = STATE.historico.filter(r=>r.turma!==id);
+  if (STATE.turmaAtiva===id) STATE.turmaAtiva = STATE.turmas[0]?.id||null;
+  salvarStorage();
+  recalcDados();
+  renderizarHistorico();
+}
+
+// ── UPLOAD ────────────────────────────────────────────────
+function renderizarUpload() {
+  document.getElementById('view-upload').innerHTML = `
+    <div>
+      <div class="page-title">Upload de Planilha</div>
+      <p class="page-sub">Importe um CSV com os dados dos alunos</p>
+    </div>
+
+    <div class="card gap-16">
+      <div class="upload-zone" id="upload-zone"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="event.preventDefault();this.classList.remove('drag');processarArquivo(event.dataTransfer.files[0])"
+        onclick="document.getElementById('file-real').click()">
+        <div class="upload-icon">📂</div>
+        <div style="font-weight:600">Arraste seu arquivo CSV aqui</div>
+        <div class="text-muted text-sm" style="margin-top:6px">ou clique para selecionar</div>
+        <input type="file" id="file-real" accept=".csv" style="display:none" onchange="processarArquivo(this.files[0])"/>
+      </div>
+      <div class="field" style="max-width:400px">
+        <label>Nome da Turma</label>
+        <input type="text" id="nome-turma" placeholder="Ex: Turma B — 2º Ano" />
+      </div>
+      <div id="upload-feedback"></div>
+      <div id="upload-preview" class="hidden gap-12"></div>
+    </div>
+
+    <hr class="divider"/>
+    <div class="section-title">Formato esperado do CSV</div>
+    <div class="card gap-12">
+      <p class="text-sm text-muted">O arquivo deve conter as seguintes colunas:</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${['Nome','Série','Disciplina','Nível de engajamento','Nota de aprendizagem','Presença (%)','Atividades entregues'].map(c=>`<span class="chip">${c}</span>`).join('')}
+      </div>
+      <p class="text-sm text-muted">Escalas: Presença e Atividades (0–100) · Nota (0–6) · Engajamento (0–10)</p>
+      <button class="btn btn-ghost btn-sm" onclick="baixarCSVExemplo()" style="align-self:flex-start">⬇️ Baixar CSV de Exemplo</button>
+    </div>`;
+}
+
+let uploadRawData = null;
+
+function processarArquivo(file) {
+  if (!file) return;
+  document.getElementById('nome-turma').value = file.name.replace(/\.csv$/i,'').replace(/_/g,' ');
+  const reader = new FileReader();
+  reader.onload = e => {
+    const texto = e.target.result;
+    const linhas = texto.trim().split(/\r?\n/);
+    const headers = linhas[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+    const OBRIG = ['Nome','Série','Disciplina','Nível de engajamento','Nota de aprendizagem','Presença (%)','Atividades entregues'];
+    const faltando = OBRIG.filter(c=>!headers.includes(c));
+    const fb = document.getElementById('upload-feedback');
+    const pv = document.getElementById('upload-preview');
+    if (faltando.length>0) {
+      fb.innerHTML = alertHTML('error','❌ Colunas ausentes: '+faltando.join(', '));
+      pv.classList.add('hidden'); uploadRawData=null; return;
+    }
+    const dados = linhas.slice(1).map(l=>{
+      const vals=l.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+      return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||'']));
+    }).filter(r=>Object.values(r).some(v=>v!==''));
+
+    uploadRawData = dados;
+    const numCols = ['Nível de engajamento','Nota de aprendizagem','Presença (%)','Atividades entregues'];
+    const avisos = [];
+    numCols.forEach(col=>{
+      const prob = dados.filter(r=>r[col]!==''&&isNaN(+r[col]));
+      if (prob.length>0) avisos.push(`"${col}": ${prob.length} valor(es) não numérico(s) → serão tratados como 0`);
+    });
+
+    fb.innerHTML = avisos.map(a=>alertHTML('warn','⚠️ '+a)).join('')+alertHTML('success','✅ '+dados.length+' alunos encontrados · Colunas OK');
+
+    const preview3 = dados.slice(0,3).map(r=>`
+      <tr><td>${r.Nome}</td><td>${r.Série}</td><td>${r.Disciplina}</td>
+      <td>${r['Presença (%)']}</td><td>${r['Atividades entregues']}</td>
+      <td>${r['Nota de aprendizagem']}</td><td>${r['Nível de engajamento']}</td></tr>`).join('');
+
+    pv.classList.remove('hidden');
+    pv.innerHTML = `
+      <div class="table-wrap">
+        <table><thead><tr><th>Nome</th><th>Série</th><th>Disciplina</th><th>Presença</th><th>Atividades</th><th>Nota</th><th>Engaj.</th></tr></thead>
+        <tbody>${preview3}</tbody></table>
+      </div>
+      ${dados.length>3?`<p class="text-sm text-muted">… e mais ${dados.length-3} alunos</p>`:''}
+      <button class="btn btn-primary" onclick="confirmarUpload()">✅ Confirmar e Salvar Turma</button>`;
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+function confirmarUpload() {
+  const nome = document.getElementById('nome-turma').value.trim();
+  if (!nome) { alert('Insira um nome para a turma.'); return; }
+  if (!uploadRawData) return;
+
+  const id = nome.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  const turmaObj = { id, nome, criadaEm: new Date().toISOString() };
+  if (!STATE.turmas.find(t=>t.id===id)) STATE.turmas.push(turmaObj);
+  else { const idx=STATE.turmas.findIndex(t=>t.id===id); STATE.turmas[idx]=turmaObj; }
+
+  const data = new Date().toISOString().slice(0,10);
+  uploadRawData.map(calcularPontos).forEach(a=>{
+    STATE.historico.push({ ...a, turma: id, data });
+  });
+  STATE.turmaAtiva = id;
+  salvarStorage();
+  recalcDados();
+  uploadRawData = null;
+  navegarPara('visao-geral', document.querySelector('.nav-item[data-view="visao-geral"]'));
+}
+
+function baixarCSVExemplo() {
+  const csv = `Nome,Série,Disciplina,Nível de engajamento,Nota de aprendizagem,Presença (%),Atividades entregues
+Ana Beatriz,3º Ano,Matemática,9.5,5.8,96,98
+João Pedro,3º Ano,Matemática,7.8,4.8,82,80
+Lucas Martins,3º Ano,Português,6.5,4.1,70,68
+Camila Rocha,2º Ano,Português,5.2,3.0,52,48
+Rafael Souza,2º Ano,Ciências,3.5,2.0,34,30
+Mariana Silva,1º Ano,Ciências,10,6.0,100,100`;
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'modelo_trenby.csv';
+  a.click();
+}
+
+// ── VISÃO ALUNO ───────────────────────────────────────────
+function renderizarVisaoAluno() {
+  const nome = STATE.usuario.nome;
+  // Buscar registro mais recente do aluno em qualquer turma
+  const map = {};
+  STATE.historico.filter(r=>r.Nome===nome).forEach(r=>{
+    if (!map[r.turma]||new Date(r.data)>new Date(map[r.turma].data)) map[r.turma]=r;
+  });
+  const recente = Object.values(map).sort((a,b)=>new Date(b.data)-new Date(a.data))[0];
+
+  const todosRegistros = STATE.historico.filter(r=>r.Nome===nome).sort((a,b)=>new Date(a.data)-new Date(b.data));
+  const tend = analisarTendencia(todosRegistros);
+
+  if (!recente) {
+    document.getElementById('view-aluno').innerHTML = `
+      <div style="min-height:60vh;display:flex;align-items:center;justify-content:center">
+        <div style="text-align:center">
+          <div style="font-size:48px;margin-bottom:12px">🔍</div>
+          <div style="font-family:Syne;font-weight:700;font-size:20px">Aluno não encontrado</div>
+          <p class="text-sm text-muted" style="margin-top:8px;max-width:300px">Verifique seu nome ou aguarde o professor cadastrar seus dados.</p>
+          <button class="btn btn-ghost" style="margin-top:20px" onclick="doLogout()">Tentar novamente</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const explicacoes = [
+    { b:getBadge(9.5), desc:'9.0 a 10.0 pontos — desempenho excepcional!' },
+    { b:getBadge(8.0), desc:'7.5 a 8.9 pontos — muito bom, continue!' },
+    { b:getBadge(6.5), desc:'6.0 a 7.4 pontos — aprovado, mas pode melhorar!' },
+    { b:getBadge(4.0), desc:'Abaixo de 6.0 — atenção redobrada necessária.' },
+  ];
+
+  document.getElementById('view-aluno').innerHTML = `
+    <div style="max-width:580px;margin:0 auto" class="gap-20">
+      <div style="text-align:center">
+        <div style="font-size:52px;margin-bottom:8px">🎓</div>
+        <div style="font-family:Syne;font-weight:800;font-size:26px">${nome}</div>
+        <div class="text-muted">${recente.Série||''} · ${recente.Disciplina||''}</div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;align-items:center;gap:12px">
+        ${gaugeHTML(recente.pontos_total, recente.badge)}
+        <p class="text-sm text-muted">Sua pontuação Trenby atual</p>
+      </div>
+      <div class="card gap-12">
+        <div class="section-title">Seus Pontos por Componente</div>
+        ${[
+          { label:'Frequência + Atividades', pts:recente.pontos_freq, max:5, emoji:'📅' },
+          { label:'Nota de Aprendizagem',    pts:recente.pontos_nota, max:3, emoji:'📚' },
+          { label:'Engajamento',             pts:recente.pontos_eng,  max:2, emoji:'⚡' },
+        ].map(c=>`
+          <div>
+            <div class="row-between mb-8"><span style="font-size:14px;font-weight:500">${c.emoji} ${c.label}</span>
+              <span style="font-family:Syne;font-weight:700">${c.pts} / ${c.max}</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(c.pts/c.max)*100}%;background:var(--accent)"></div></div>
+          </div>`).join('')}
+      </div>
+      <div class="card gap-12">
+        <div class="row-between">
+          <div class="section-title" style="margin-bottom:0">Sua Evolução</div>
+          <span class="risk-chip" style="background:${tend.cor}22;color:${tend.cor};border:1px solid ${tend.cor}44">${tend.nivel}</span>
+        </div>
+        <p class="text-sm text-muted">${tend.desc}</p>
+        ${lineChartHTML(todosRegistros, tend.cor)}
+      </div>
+      <div class="card gap-12">
+        <div class="section-title">📘 O que cada badge significa?</div>
+        ${explicacoes.map(e=>`<div class="row">${badgeHTML(e.b)}<span class="text-sm">${e.desc}</span></div>`).join('')}
+      </div>
+      <button class="btn btn-ghost" style="align-self:flex-start" onclick="doLogout()">🚪 Sair</button>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════════ */
+function resetarDemo() {
+  if (!confirm('Resetar todos os dados para o estado de demo?')) return;
+  localStorage.clear();
+  location.reload();
+}
+</script>
+</body>
+</html>
