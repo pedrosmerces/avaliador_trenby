@@ -1,0 +1,43 @@
+# Trenby — Deploy na Vercel
+
+## Estrutura do projeto
+
+```
+trenby-vercel/
+├── vercel.json        ← configuração da Vercel
+└── public/
+    └── index.html     ← aplicação completa (single file)
+```
+
+## Como fazer o deploy
+
+### Opção 1 — Via Vercel CLI (recomendado)
+```bash
+npm i -g vercel
+cd trenby-vercel
+vercel
+```
+Siga as perguntas:
+- Set up and deploy? **Y**
+- Which scope? → sua conta
+- Link to existing project? **N**
+- Project name: **trenby**
+- In which directory is your code? **.** (ponto, diretório atual)
+
+### Opção 2 — Via Dashboard (arrastar e soltar)
+1. Acesse https://vercel.com/new
+2. Arraste a pasta `trenby-vercel` inteira para o dashboard
+3. Clique em **Deploy**
+
+### Opção 3 — Via GitHub
+1. Suba a pasta `trenby-vercel` para um repositório GitHub
+2. No dashboard da Vercel: **Add New → Project → Import Git Repository**
+3. Selecione o repositório e clique em **Deploy**
+   - Framework Preset: **Other**
+   - Root Directory: **.** (raiz)
+   - Build Command: (deixar vazio)
+   - Output Directory: **public**
+
+## Credenciais de acesso (demo)
+- **Professor:** usuário `professor` / senha `trenby2025`
+- **Aluno:** qualquer nome cadastrado (ex: `Ana Beatriz`)
